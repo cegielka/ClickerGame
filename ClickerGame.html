@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClickerGame</title>  
+</head>
+<body>
+    <div id="container">
+        <h1>Time Remaining: <span id="time">10</span></h1>
+        <h1>Points: <span id="score">0</span></h1>
+        <button id="button">CLICK AS FAST AS U CAN!</button>
+        <h1>
+        <button id="startBtn">START</button> 
+        </h1>
+        <h3>
+            HIGH SCORE:
+        </h3>
+        <div id="highScore">Loading...</div>
+    </div>
+
+   
+
+    <script>
+        let message = "Try again.";
+        let game = 'counter';
+        let game_started = false;
+        let score = 0;
+        let time = 10;
+        let gameInterval = null;
+        let alertTimeout = null;
+        let scoreData = null;
+
+        const timer = document.getElementById('time');
+        const highScore = document.getElementById('highScore');
+        const playBtn = document.getElementById('button');
+        const startBtn = document.getElementById('startBtn')
+        
+        playBtn.addEventListener('click',play);
+        startBtn.addEventListener('click',startGame);
+
+        document.addEventListener('DOMContentLoaded',fetchScore);
+
+        function startGame(){
+            clearInterval(gameInterval);
+            gameInterval = null;
+            clearTimeout(alertTimeout);
+            alertTimeout = null;
+            if(game_started === false){
+                score = 0;
+                document.getElementById('score').innerHTML = score;
+                gameInterval = setInterval(tickGame,1000);
+                game_started = true;
+                startBtn.innerText = "CANCEL";
+            } else {
+                game_started = false;
+                score = 0;
+                time = 10;
+                timer.innerHTML = time;
+                startBtn.innerText = "START";
+            }
+        }
+
+        function tickGame(){
+            if(time > 0){
+                time--;
+                timer.innerHTML = time;
+            } else {
+                time = 10;
+                startBtn.innerText = "START";
+                clearInterval(gameInterval);
+                game_started = false;
+                if(checkScore() === true){
+                    console.log(message);
+                    alertTimeout = setTimeout(()=>{
+                            var person = prompt('Your score is ' + score + '. ' + message);
+
+                            if(person !== null){
+                                sendScore(game,person,score);
+                            }                              
+                    },1000)                    
+                } else {
+                    alertTimeout = setTimeout(()=>{
+                        alert('Your score is: ' + score + '. Try again.');                        
+                    },1000) 
+                }
+            }
+        }
+
+        function play(){
+            if(game_started === true){
+                score++;
+                playBtn.textContent = "Click!";
+                document.getElementById('score').innerHTML = score;
+            }
+        }
+
+        function fetchScore(){
+            let xhr = new XMLHttpRequest();
+
+            xhr.open('GET', 'Scorefile2.php', true);
+
+            xhr.onload = function(){
+                console.log(this.responseText);
+
+                scoreData = JSON.parse(this.responseText);
+
+                var output = '<ol>';
+
+                for (var i in scoreData){
+                    output += '<li><span class="name">' + scoreData[i].name + '</span><span>score: ' + scoreData[i].score + ' clicks</span></li>';
+                }
+
+                output += '</ol>';
+
+                document.querySelector('#highScore').innerHTML = output;
+            }
+
+            xhr.send();
+        }
+
+        function sendScore(game,person,score){
+            let xhr = new XMLHttpRequest();
+
+            let params = "game=" + game + "&name=" + person + "&score=" + score;
+
+            xhr.open('POST', 'Scorefile1.php', true);
+            xhr.setRequestHeader('Content-type','application/x-www-form-urlencoded');
+
+            xhr.onload = function(){
+                fetchScore();
+            }
+
+            xhr.send(params);
+        }
+        
+        function checkScore(){
+            console.log(scoreData);
+
+            if(scoreData.length > 0){
+                let minScore = getMinScore(scoreData);
+                let maxScore = getMaxScore(scoreData);
+                if(score > maxScore){
+                    message = "You achieved highest score.";
+                    return true;
+                } else if(score > minScore) {
+                    message = "You entered high score list.";
+                    return true;
+                }
+
+                console.log(minScore,maxScore);
+            }
+
+            return false;
+
+            
+        }
+        function mapScores(data){
+            return data.map(d => d.score);
+        }
+        function getMinScore(data){
+            return Math.min(...mapScores(data));
+        }
+        function getMaxScore(data) {
+            return Math.max(...mapScores(data));
+        }
+    </script>
+</body>
+</html>
